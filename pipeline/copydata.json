@@ -1,0 +1,187 @@
+{
+	"name": "copydata",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 32,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [
+					{
+						"name": "batch",
+						"value": "100"
+					},
+					{
+						"name": "prod_issue",
+						"value": "clm_id is null"
+					}
+				],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"maxConcurrentConnections": 0,
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings",
+							"skipLineCount": 0
+						}
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings",
+							"copyBehavior": "MergeFiles",
+							"metadata": [
+								{
+									"name": "LOB",
+									"value": "marketing"
+								},
+								{
+									"name": "contact",
+									"value": "XYZ@abc.com"
+								}
+							]
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": ".txt"
+						}
+					},
+					"enableStaging": false,
+					"enableSkipIncompatibleRow": false,
+					"validateDataConsistency": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "emid",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "emid",
+									"type": "String",
+									"physicalType": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "did",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "did",
+									"type": "String",
+									"physicalType": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "mgrid",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "mgrid",
+									"type": "String",
+									"physicalType": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "mgrdid",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "mgrdid",
+									"type": "String",
+									"physicalType": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "empfirstname",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "empfirstname",
+									"type": "String",
+									"physicalType": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "emplastname",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "emplastname",
+									"type": "String",
+									"physicalType": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "salary",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "salary",
+									"type": "String",
+									"physicalType": "String"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_adls",
+						"type": "DatasetReference",
+						"parameters": {
+							"file": "emp.txt"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_adls",
+						"type": "DatasetReference",
+						"parameters": {
+							"file": "emp1.txt"
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "202601"
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-02-10T16:22:15Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

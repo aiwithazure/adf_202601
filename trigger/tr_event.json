@@ -1,0 +1,26 @@
+{
+	"name": "tr_event",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "web",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "BlobEventsTrigger",
+		"typeProperties": {
+			"blobPathBeginsWith": "/tutranscont/blobs/input/",
+			"blobPathEndsWith": "orders.txt",
+			"ignoreEmptyBlobs": true,
+			"scope": "/subscriptions/bd44a5b3-a202-4b6c-aa3a-cc2262ea0e03/resourceGroups/AzureDE/providers/Microsoft.Storage/storageAccounts/tutranssa",
+			"events": [
+				"Microsoft.Storage.BlobCreated",
+				"Microsoft.Storage.BlobDeleted"
+			]
+		}
+	}
+}

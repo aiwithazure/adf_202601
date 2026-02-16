@@ -1,0 +1,433 @@
+{
+	"name": "PL_main_processing",
+	"properties": {
+		"activities": [
+			{
+				"name": "control table extraction",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "select * from [ANALYTICS_SCHEMA].[CONTROL_TABLE] where start_run='Y'",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "db_table",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "main process id",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "control table extraction",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "main_process_id",
+					"value": {
+						"value": "@guid()",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "main process start time",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "control table extraction",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "main_process_start_time",
+					"value": {
+						"value": "@utcNow()",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "main process id",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "main process start time",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('control table extraction').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 1,
+					"activities": [
+						{
+							"name": "target table",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "target_table",
+								"value": {
+									"value": "@item().TARGET_TABLE",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "watermark_start val",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "target table",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "watermark_start_val",
+								"value": {
+									"value": "@item().WATERMARK_VALUE",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "soruce table",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "watermark_col_name",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "source_table",
+								"value": {
+									"value": "@item().SOURCE_TABLE",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "email",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "soruce table",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "email",
+								"value": {
+									"value": "@item().EMAIL_ID",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "SP source",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "email",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "source_sp",
+								"value": {
+									"value": "@item().SOURCE_SP",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "SP target",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "SP source",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "target_sp",
+								"value": {
+									"value": "@item().TARGET_SP",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Execute sub loading",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "SP target",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PL_sub_loading",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"main_process_id": {
+										"value": "@variables('main_process_id')",
+										"type": "Expression"
+									},
+									"main_process_start_time": {
+										"value": "@variables('main_process_start_time')",
+										"type": "Expression"
+									},
+									"table_name": {
+										"value": "@variables('source_table')",
+										"type": "Expression"
+									},
+									"target_table": {
+										"value": "@variables('target_table')",
+										"type": "Expression"
+									},
+									"watermark_start_val": {
+										"value": "@variables('watermark_start_val')",
+										"type": "Expression"
+									},
+									"sp_source": {
+										"value": "@variables('source_sp')",
+										"type": "Expression"
+									},
+									"sp_merge": {
+										"value": "@variables('target_sp')",
+										"type": "Expression"
+									},
+									"watermark_col_name": {
+										"value": "@variables('watermark_col_name')",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "watermark_col_name",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "watermark_start val",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "watermark_col_name",
+								"value": {
+									"value": "@item().watermark_column",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Lookup error count",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "ForEach1",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('select * from ANALYTICS_SCHEMA.LOG_TABLE where main_process_id=''',variables('main_process_id'),'''',' and sub_process_result = ''FAILED''')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "db_table",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "logic app wk email",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Lookup error count",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"url": {
+						"value": "https://prod-72.eastus.logic.azure.com:443/workflows/706a7f84de8a4868a2dd7bfbe39865ab/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=n-YJwMc3RXjdT63vRy-TihqeKq520uvqgrXD9oQgRWc",
+						"type": "Expression"
+					},
+					"body": {
+						"value": "@activity('Lookup error count').output.value",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"variables": {
+			"main_process_id": {
+				"type": "String"
+			},
+			"main_process_start_time": {
+				"type": "String"
+			},
+			"watermark_start_val": {
+				"type": "String"
+			},
+			"source_table": {
+				"type": "String"
+			},
+			"target_table": {
+				"type": "String"
+			},
+			"source_sp": {
+				"type": "String"
+			},
+			"target_sp": {
+				"type": "String"
+			},
+			"email": {
+				"type": "String"
+			},
+			"watermark_col_name": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Ingestion gramework"
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-02-13T03:50:14Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,48 @@
+{
+	"name": "filter",
+	"properties": {
+		"activities": [
+			{
+				"name": "Filter1",
+				"type": "Filter",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@variables('fruits')",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@contains(item(),'banana')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Wait1",
+				"type": "Wait",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 30
+				}
+			}
+		],
+		"variables": {
+			"fruits": {
+				"type": "Array",
+				"defaultValue": [
+					"mango",
+					"banana",
+					"grapes"
+				]
+			}
+		},
+		"folder": {
+			"name": "202601"
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-02-13T02:37:32Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,9 @@
+{
+	"name": "tutransADF",
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "08995c62-6f76-486d-ad10-46a69f8375b5",
+		"tenantId": "3829c9f3-d4bc-47e5-8248-281c09f995b2"
+	}
+}

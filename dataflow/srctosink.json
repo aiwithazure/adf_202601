@@ -1,0 +1,163 @@
+{
+	"name": "srctosink",
+	"properties": {
+		"folder": {
+			"name": "202601"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "db_table",
+						"type": "DatasetReference"
+					},
+					"name": "address"
+				},
+				{
+					"dataset": {
+						"referenceName": "AzureSqlTable2",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_adls_dir",
+						"type": "DatasetReference"
+					},
+					"name": "sink2"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_adls_dir",
+						"type": "DatasetReference"
+					},
+					"name": "sink3"
+				}
+			],
+			"transformations": [
+				{
+					"name": "select1"
+				},
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "filter2"
+				},
+				{
+					"name": "sort1"
+				},
+				{
+					"name": "join4"
+				},
+				{
+					"name": "select2"
+				},
+				{
+					"name": "split1"
+				},
+				{
+					"name": "union1"
+				},
+				{
+					"name": "aggregate1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          AddressID as integer,",
+				"          AddressLine1 as string,",
+				"          AddressLine2 as string,",
+				"          City as string,",
+				"          StateProvince as string,",
+				"          CountryRegion as string,",
+				"          PostalCode as string,",
+				"          rowguid as string,",
+				"          ModifiedDate as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> address",
+				"source(output(",
+				"          CustomerID as integer,",
+				"          AddressID as integer,",
+				"          AddressType as string,",
+				"          rowguid as string,",
+				"          ModifiedDate as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> source1",
+				"filter2 select(mapColumn(",
+				"          AddressID,",
+				"          City,",
+				"          CountryRegion,",
+				"          PostalCode,",
+				"          ModifiedDate",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"split1@namr derive(totaladdress = concat(AddressLine1,iifNull(AddressLine2,'UNKNOWN'))) ~> derivedColumn1",
+				"union1 filter(lower(CountryRegion) == 'canada' && substring(PostalCode,1,3) == 'M4B') ~> filter2",
+				"select1 sort(asc(PostalCode, true),",
+				"     asc(CountryRegion, true),",
+				"     asc(AddressID, true)) ~> sort1",
+				"source1, address join(source1@AddressID == address@AddressID,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join4",
+				"join4 select(mapColumn(",
+				"          CustomerID,",
+				"          AddressID = source1@AddressID,",
+				"          AddressType,",
+				"          rowguid = source1@rowguid,",
+				"          ModifiedDate = source1@ModifiedDate,",
+				"          AddressID = address@AddressID,",
+				"          AddressLine1,",
+				"          AddressLine2,",
+				"          City,",
+				"          StateProvince,",
+				"          CountryRegion,",
+				"          PostalCode,",
+				"          rowguid = address@rowguid,",
+				"          ModifiedDate = address@ModifiedDate",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select2",
+				"address split(City == ' Dallas',",
+				"     City == 'Newyork',",
+				"     disjoint: false) ~> split1@(namr, newyork, euro)",
+				"aggregate1, source1, address union(byName: true)~> union1",
+				"derivedColumn1 aggregate(groupBy(count = City),",
+				"     cnt = count(City)) ~> aggregate1",
+				"sort1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          Column_1 as string",
+				"     ),",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sink2",
+				"select2 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          Column_1 as string",
+				"     ),",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sink3"
+			]
+		}
+	}
+}

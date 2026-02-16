@@ -1,0 +1,437 @@
+{
+	"name": "pl_sub_stage_to_target",
+	"properties": {
+		"activities": [
+			{
+				"name": "Lookup1",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('select count(1) from REPORTING.',pipeline().parameters.stage_table_name)",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "db_table",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Stored procedure1",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Lookup1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": {
+						"value": "@concat('ANALYTICS_SCHEMA.',pipeline().parameters.sp_target)",
+						"type": "Expression"
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "Azure SQL DB",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "sub process end time",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Stored procedure1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "sub_process_end_time",
+					"value": {
+						"value": "@utcNow()",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "SP insert log table success",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "sub process end time",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[ANALYTICS_SCHEMA].[SP_INSERT_LOG_TABLE]",
+					"storedProcedureParameters": {
+						"LAST_UPDATED_TIME": {
+							"value": {
+								"value": "@variables('sub_process_end_time')",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"MAIN_PROCESS_ID": {
+							"value": {
+								"value": "@pipeline().parameters.main_process_id",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RECORDS_COUNT": {
+							"value": {
+								"value": "@activity('Lookup1').output.count",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"SUB_PROCESS_END_TIME": {
+							"value": {
+								"value": "@variables('sub_process_end_time')",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"SUB_PROCESS_ID": {
+							"value": {
+								"value": "@pipeline().parameters.sub_process_id",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"SUB_PROCESS_RESULT": {
+							"value": "SUCCESS",
+							"type": "String"
+						},
+						"SUB_PROCESS_START_TIME": {
+							"value": {
+								"value": "@pipeline().parameters.sub_process_start_time",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "Azure SQL DB",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "SP update control table",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "SP insert log table success",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[ANALYTICS_SCHEMA].[SP_UPD_CONTROL_TABLE]",
+					"storedProcedureParameters": {
+						"LAST_MAIN_PROCESSID": {
+							"value": {
+								"value": "@pipeline().parameters.main_process_id",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"LAST_SUB_PROCESS_RESULT": {
+							"value": {
+								"value": "SUCCESS",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"LAST_SUB_PROCESSID": {
+							"value": {
+								"value": "@pipeline().parameters.sub_process_id",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RUN_STATUS": {
+							"value": "Y",
+							"type": "String"
+						},
+						"SOURCE_TABLE": {
+							"value": {
+								"value": "@pipeline().parameters.table_name",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"WATERMARK_VAL": {
+							"value": {
+								"value": "@pipeline().parameters.watermark_end_val",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "Azure SQL DB",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "sub process end time_copy1",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Stored procedure1",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "sub_process_end_time",
+					"value": {
+						"value": "@utcNow()",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "SP insert log table success_copy1",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "sub process end time_copy1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[ANALYTICS_SCHEMA].[SP_INSERT_LOG_TABLE]",
+					"storedProcedureParameters": {
+						"LAST_UPDATED_TIME": {
+							"value": {
+								"value": "@variables('sub_process_end_time')",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"MAIN_PROCESS_ID": {
+							"value": {
+								"value": "@pipeline().parameters.main_process_id",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RECORDS_COUNT": {
+							"value": {
+								"value": "@activity('Lookup1').output.count",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"SUB_PROCESS_END_TIME": {
+							"value": {
+								"value": "@variables('sub_process_end_time')",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"SUB_PROCESS_ID": {
+							"value": {
+								"value": "@pipeline().parameters.sub_process_id",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"SUB_PROCESS_RESULT": {
+							"value": "FAILED",
+							"type": "String"
+						},
+						"SUB_PROCESS_START_TIME": {
+							"value": {
+								"value": "@pipeline().parameters.sub_process_start_time",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "Azure SQL DB",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "SP update control table_copy1",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "SP insert log table success_copy1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[ANALYTICS_SCHEMA].[SP_UPD_CONTROL_TABLE]",
+					"storedProcedureParameters": {
+						"LAST_MAIN_PROCESSID": {
+							"value": {
+								"value": "@pipeline().parameters.main_process_id",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"LAST_SUB_PROCESS_RESULT": {
+							"value": {
+								"value": "FAILED",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"LAST_SUB_PROCESSID": {
+							"value": {
+								"value": "@pipeline().parameters.sub_process_id",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RUN_STATUS": {
+							"value": "N",
+							"type": "String"
+						},
+						"SOURCE_TABLE": {
+							"value": {
+								"value": "@pipeline().parameters.table_name",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"WATERMARK_VAL": {
+							"value": {
+								"value": "@pipeline().parameters.watermark_end_val",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "Azure SQL DB",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"table_name": {
+				"type": "string"
+			},
+			"main_process_id": {
+				"type": "string"
+			},
+			"sub_process_id": {
+				"type": "string"
+			},
+			"sub_process_start_time": {
+				"type": "string"
+			},
+			"watermark_end_val": {
+				"type": "string"
+			},
+			"stage_table_name": {
+				"type": "string"
+			},
+			"sp_target": {
+				"type": "string"
+			},
+			"watermark_start_val": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"sub_process_end_time": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Ingestion gramework"
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-02-03T15:19:09Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,109 @@
+{
+	"name": "if",
+	"properties": {
+		"activities": [
+			{
+				"name": "If Condition1",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Lookup1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(formatDateTime(utcNow(),'yyyyMMdd'),activity('Lookup1').output.firstRow.Prop_0)\n",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "sv false",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "temp",
+								"value": 10
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "sv true",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "temp",
+								"value": 100
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Lookup1",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"dataset": {
+						"referenceName": "ds_adls",
+						"type": "DatasetReference",
+						"parameters": {
+							"file": "acb"
+						}
+					},
+					"firstRowOnly": true
+				}
+			}
+		],
+		"variables": {
+			"temp": {
+				"type": "Integer"
+			},
+			"currdate": {
+				"type": "String"
+			},
+			"lkpout": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "202601"
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-02-04T16:38:46Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

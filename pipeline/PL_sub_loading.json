@@ -1,0 +1,257 @@
+{
+	"name": "PL_sub_loading",
+	"properties": {
+		"activities": [
+			{
+				"name": "sub process id",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "sub_process_id",
+					"value": {
+						"value": "@guid()",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "sub process start time",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "sub process id",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "sub_process_start_time",
+					"value": {
+						"value": "@utcNow()",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "water mark end val",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "sub process start time",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "watermark_end_val",
+					"value": {
+						"value": "@formatDateTime(utcNow(),'yyyy-MM-dd')\n",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Execute src to stage",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "water mark end val",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_sub_src_to_staging",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"source_table": {
+							"value": "@pipeline().parameters.table_name",
+							"type": "Expression"
+						},
+						"target_table": {
+							"value": "@pipeline().parameters.target_table",
+							"type": "Expression"
+						},
+						"main_process_id": {
+							"value": "@pipeline().parameters.main_process_id",
+							"type": "Expression"
+						},
+						"sub_process_id": {
+							"value": "@variables('sub_process_id')",
+							"type": "Expression"
+						},
+						"watermark_start_val": {
+							"value": "@pipeline().parameters.watermark_start_val",
+							"type": "Expression"
+						},
+						"watermark_end_val": {
+							"value": "@variables('watermark_end_val')",
+							"type": "Expression"
+						},
+						"sub_process_start_time": {
+							"value": "@variables('sub_process_start_time')",
+							"type": "Expression"
+						},
+						"sp_merge": {
+							"value": "@pipeline().parameters.sp_merge",
+							"type": "Expression"
+						},
+						"watermark_col_name": {
+							"value": "@pipeline().parameters.watermark_col_name",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "sub process id stage to target",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Execute src to stage",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "sub_process_id",
+					"value": {
+						"value": "@guid()",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Execute Pipeline1_copy1",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "sub process id stage to target",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_sub_stage_to_target",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"table_name": {
+							"value": "@pipeline().parameters.target_table",
+							"type": "Expression"
+						},
+						"main_process_id": {
+							"value": "@pipeline().parameters.main_process_id",
+							"type": "Expression"
+						},
+						"sub_process_id": {
+							"value": "@variables('sub_process_id')",
+							"type": "Expression"
+						},
+						"sub_process_start_time": {
+							"value": "@variables('sub_process_start_time')",
+							"type": "Expression"
+						},
+						"watermark_end_val": {
+							"value": "@variables('watermark_end_val')",
+							"type": "Expression"
+						},
+						"stage_table_name": {
+							"value": "@concat('stg_',pipeline().parameters.target_table)",
+							"type": "Expression"
+						},
+						"sp_target": {
+							"value": "@pipeline().parameters.sp_merge",
+							"type": "Expression"
+						},
+						"watermark_start_val": {
+							"value": "@pipeline().parameters.watermark_start_val",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"main_process_id": {
+				"type": "string"
+			},
+			"main_process_start_time": {
+				"type": "string"
+			},
+			"table_name": {
+				"type": "string"
+			},
+			"target_table": {
+				"type": "string"
+			},
+			"watermark_start_val": {
+				"type": "string"
+			},
+			"sp_source": {
+				"type": "string"
+			},
+			"sp_merge": {
+				"type": "string"
+			},
+			"watermark_col_name": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"sub_process_id": {
+				"type": "String"
+			},
+			"sub_process_start_time": {
+				"type": "String"
+			},
+			"watermark_end_val": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Ingestion gramework"
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-02-03T15:19:09Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
