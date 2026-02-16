@@ -8,15 +8,10 @@
 				"dependsOn": [],
 				"userProperties": [],
 				"typeProperties": {
-					"waitTimeInSeconds": 100
+					"waitTimeInSeconds": 1
 				}
 			}
 		],
-		"folder": {
-			"name": "202601"
-		},
-		"annotations": [],
-		"lastPublishTime": "2026-02-11T15:57:49Z"
-	},
-	"type": "Microsoft.DataFactory/factories/pipelines"
+		"annotations": []
+	}
 }

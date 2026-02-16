@@ -24,7 +24,7 @@
 				"type": "SetVariable",
 				"dependsOn": [
 					{
-						"activity": "sub process id",
+						"activity": "Wait1",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -48,7 +48,7 @@
 				"type": "SetVariable",
 				"dependsOn": [
 					{
-						"activity": "sub process start time",
+						"activity": "Wait2",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -207,6 +207,38 @@
 							"type": "Expression"
 						}
 					}
+				}
+			},
+			{
+				"name": "Wait1",
+				"type": "Wait",
+				"dependsOn": [
+					{
+						"activity": "sub process id",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 1
+				}
+			},
+			{
+				"name": "Wait2",
+				"type": "Wait",
+				"dependsOn": [
+					{
+						"activity": "sub process start time",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 1
 				}
 			}
 		],
